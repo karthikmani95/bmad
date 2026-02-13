@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotDFC Bank | Digital Claims Management</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50">
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-shield-halved"></i>
+                <span>NotDFC Bank</span>
+            </div>
+            <button class="mobile-close" id="mobileClose"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <ul class="nav-links">
+            <li>
+                <a href="#" class="nav-item active" data-view="dashboard">
+                    <i class="fas fa-columns"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-item" data-view="my-claims">
+                    <i class="fas fa-file-invoice"></i>
+                    <span>My Claims</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-item" data-view="create-claim">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Create Claim</span>
+                </a>
+            </li>
+            <li class="nav-divider"></li>
+            <li>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Support</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Karthik+Mani&background=003366&color=fff" alt="User">
+                <div class="user-info">
+                    <span class="user-name">Karthik Mani</span>
+                    <span class="user-role">Retail Customer</span>
+                </div>
+            </div>
+            <button class="logout-btn"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-wrapper">
+        <!-- Top Header (Desktop) & Mobile Toggle -->
+        <header class="top-header">
+            <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search claims, transactions...">
+            </div>
+            <div class="header-actions">
+                <div class="notification-bell">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">2</span>
+                </div>
+                <div class="date-display">
+                    <i class="far fa-calendar-alt"></i>
+                    <span id="currentDate">Feb 11, 2026</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- View Container -->
+        <div id="viewContainer" class="view-container">
+            <!-- Views will be injected here via app.js -->
+            <div id="loading" class="loading-state">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js" defer></script>
+</body>
+</html>

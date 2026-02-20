@@ -2,6 +2,7 @@
 
 import { createClaim } from '@/lib/supabase/database';
 import { supabase } from '@/lib/supabase/database';
+import { createClient } from '@/lib/supabase/server';
 
 export interface DisputeSubmission {
     transactionId: string;
@@ -33,8 +34,9 @@ export async function submitDispute(data: DisputeSubmission): Promise<Submission
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Get current user (must use server client - reads session from cookies)
+    const supabaseServer = await createClient();
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
     if (authError || !user) {
         return {

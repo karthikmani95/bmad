@@ -58,7 +58,7 @@ export async function updateSession(request: NextRequest) {
       const { verifyMockToken } = await import("@/../tests/__mocks__/bank-sso");
       const ssoUser = await verifyMockToken(ssoToken);
       isAuthenticated = !!ssoUser;
-      if (isAuthenticated) {
+      if (isAuthenticated && ssoUser) {
         console.info(`Proxy: Validated SSO session for user ${ssoUser.email}`);
       } else {
         console.error("Proxy: Invalid SSO Token. Clearing cookie.");

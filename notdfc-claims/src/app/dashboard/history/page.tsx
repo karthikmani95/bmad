@@ -7,6 +7,7 @@ import { StatusBadge } from '@/features/claims/components/details/StatusBadge';
 import { ClaimStatus } from '@/features/claims/types';
 import { FileText, Search, Filter } from 'lucide-react';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function ClaimHistoryPage() {
     const [claims, setClaims] = useState<Claim[]>([]);
@@ -103,7 +104,19 @@ export default function ClaimHistoryPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredClaims.length > 0 ? (
+                                {loading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={i}>
+                                            <td className="px-6 py-4"><Skeleton className="h-6 w-24" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                                            <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                                            <td className="px-6 py-4 text-right"><Skeleton className="h-6 w-20 rounded-full ml-auto" /></td>
+                                        </tr>
+                                    ))
+                                ) : filteredClaims.length > 0 ? (
                                     filteredClaims.map((claim) => (
                                         <tr key={claim.id} className="hover:bg-gray-50/50 transition-colors group">
                                             <td className="px-6 py-4">

@@ -2,12 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, PlusCircle, History, Settings, LogOut } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Initiate Claim', href: '/claims/new', icon: PlusCircle },
+    { name: 'Create Claim', href: '/claims/new', icon: PlusCircle },
     { name: 'Claim History', href: '/dashboard/history', icon: History },
 ];
 
@@ -18,6 +19,14 @@ const navItems = [
  */
 export const Sidebar: React.FC = () => {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push('/auth/login');
+        router.refresh();
+    };
 
     return (
         <div className="w-64 bg-notdfc-navy-deep text-white flex flex-col h-full border-r border-notdfc-navy-light shadow-xl">
@@ -61,6 +70,7 @@ export const Sidebar: React.FC = () => {
                     <span className="font-medium">Settings</span>
                 </Link>
                 <button
+                    onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 transition-colors rounded-lg hover:bg-red-500/10 mt-1"
                 >
                     <LogOut className="w-5 h-5" />

@@ -2,7 +2,8 @@
 
 import React, { useState, Suspense } from 'react';
 import { Sidebar } from './Sidebar';
-import { Menu, X, User } from 'lucide-react';
+import { AuthHeader } from './AuthHeader';
+import { Menu } from 'lucide-react';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -58,15 +59,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="flex flex-col items-end mr-2">
-                            <span className="text-sm font-medium text-gray-900 leading-none">Karthik Mani</span>
-                            <span className="text-xs text-notdfc-navy-light/60">Retail Customer</span>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-notdfc-navy-deep flex items-center justify-center text-white ring-2 ring-notdfc-silver ring-offset-2">
-                            <User className="w-5 h-5" />
-                        </div>
-                    </div>
+                    <Suspense fallback={<div className="h-10 w-24 bg-gray-200 rounded animate-pulse" />}>
+                        <AuthHeader />
+                    </Suspense>
                 </header>
 
                 {/* Content Body - No global scroll, children handle internal scroll */}

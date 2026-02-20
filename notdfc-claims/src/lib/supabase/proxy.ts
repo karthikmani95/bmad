@@ -42,34 +42,43 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // IMPORTANT: For the NotDFC Secure Vault prototype, we use the SSO Mock Token
-  const ssoToken = request.cookies.get('notdfc_sso_token')?.value;
+  // Protect routes that require authentication (exclude /, /auth/*)
+  const pathname = request.nextUrl.pathname;
+  const isProtectedRoute =
+    pathname !== "/" &&
+    !pathname.startsWith("/auth");
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    if (!ssoToken) {
-      console.warn(`Proxy: Unauthenticated access attempt to ${request.nextUrl.pathname}. Redirecting to /login.`);
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
+  if (isProtectedRoute) {
+    // Accept either Supabase session OR SSO mock token
+    const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+    const ssoToken = request.cookies.get("notdfc_sso_token")?.value;
+
+    let isAuthenticated = !!supabaseUser;
+    if (!isAuthenticated && ssoToken) {
+      const { verifyMockToken } = await import("@/../tests/__mocks__/bank-sso");
+      const ssoUser = await verifyMockToken(ssoToken);
+      isAuthenticated = !!ssoUser;
+      if (isAuthenticated) {
+        console.info(`Proxy: Validated SSO session for user ${ssoUser.email}`);
+      } else {
+        console.error("Proxy: Invalid SSO Token. Clearing cookie.");
+        const response = NextResponse.redirect(new URL("/auth/login", request.url));
+        response.cookies.delete("notdfc_sso_token");
+        supabaseResponse.cookies.getAll().forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+        return response;
+      }
     }
 
-    const { verifyMockToken } = await import("@/../tests/__mocks__/bank-sso");
-    const user = await verifyMockToken(ssoToken);
-
-    if (!user) {
-      console.error('Proxy: Invalid SSO Token. Clearing cookie and redirecting.');
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('notdfc_sso_token');
+    if (!isAuthenticated) {
+      console.warn(`Proxy: Unauthenticated access to ${pathname}. Redirecting to /auth/login.`);
+      const response = NextResponse.redirect(new URL("/auth/login", request.url));
+      supabaseResponse.cookies.getAll().forEach(({ name, value, options }) =>
+        response.cookies.set(name, value, options)
+      );
       return response;
     }
-
-    console.info(`Proxy: Validated session for user ${user.email}`);
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

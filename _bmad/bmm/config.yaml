@@ -3,7 +3,7 @@
 # Version: 6.0.0-Beta.7
 # Date: 2026-02-09T14:20:24.222Z
 
-project_name: bmad
+project_name: template_upload
 user_skill_level: intermediate
 planning_artifacts: "{project-root}/_bmad-output/planning-artifacts"
 implementation_artifacts: "{project-root}/_bmad-output/implementation-artifacts"

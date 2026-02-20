@@ -54,7 +54,7 @@ export async function submitDispute(data: DisputeSubmission): Promise<Submission
 
     const transactionDate = transaction?.date || new Date().toISOString().split('T')[0];
 
-    // Create claim in database
+    // Create claim in database (use server client - has user session for RLS)
     const result = await createClaim({
         transactionId: data.transactionId,
         transactionDate,
@@ -62,7 +62,7 @@ export async function submitDispute(data: DisputeSubmission): Promise<Submission
         disputeType: data.disputeType,
         reason: data.disputeReason,
         userId: user.id
-    });
+    }, supabaseServer);
 
     if (!result.success) {
         return {

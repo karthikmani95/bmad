@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Claim, ClaimHistoryEvent } from '@/features/claims/types';
 import { Transaction } from '@/features/transactions/types';
 
@@ -169,18 +169,23 @@ export async function getClaimById(claimId: string): Promise<Claim | null> {
 }
 
 /**
- * Create a new claim
+ * Create a new claim.
+ * @param data - Claim data
+ * @param authClient - Supabase client with user session (required for RLS). Pass the server client from createClient().
  */
-export async function createClaim(data: {
-    transactionId: string;
-    transactionDate: string;
-    amount: number;
-    disputeType: 'Card' | 'Non-Card';
-    reason: string;
-    userId: string;
-}): Promise<{ success: boolean; claimId?: string; error?: string }> {
+export async function createClaim(
+    data: {
+        transactionId: string;
+        transactionDate: string;
+        amount: number;
+        disputeType: 'Card' | 'Non-Card';
+        reason: string;
+        userId: string;
+    },
+    authClient: SupabaseClient
+): Promise<{ success: boolean; claimId?: string; error?: string }> {
     // Check for duplicate claims
-    const { data: existingClaims } = await supabase
+    const { data: existingClaims } = await authClient
         .from('claims')
         .select('id')
         .eq('transaction_id', data.transactionId)
@@ -193,8 +198,8 @@ export async function createClaim(data: {
         };
     }
 
-    // Create the claim
-    const { data: claim, error: claimError } = await supabase
+    // Create the claim (authClient has user session, so RLS auth.uid() passes)
+    const { data: claim, error: claimError } = await authClient
         .from('claims')
         .insert({
             transaction_id: data.transactionId,
@@ -218,7 +223,7 @@ export async function createClaim(data: {
     }
 
     // Create initial history entry
-    await supabase
+    await authClient
         .from('claim_history')
         .insert({
             claim_id: claim.id,

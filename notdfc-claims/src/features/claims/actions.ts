@@ -1,8 +1,13 @@
 "use server";
 
-import { createClaim } from '@/lib/supabase/database';
+import { createClaim, getClaims } from '@/lib/supabase/database';
 import { supabase } from '@/lib/supabase/database';
 import { createClient } from '@/lib/supabase/server';
+
+export async function getClaimsAction() {
+    const supabaseServer = await createClient();
+    return getClaims(supabaseServer);
+}
 
 export interface DisputeSubmission {
     transactionId: string;

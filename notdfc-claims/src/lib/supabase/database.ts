@@ -55,10 +55,12 @@ export interface DbTransaction {
 }
 
 /**
- * Get all claims for the current user
+ * Get all claims for the current user.
+ * @param authClient - Supabase client with user session (required for RLS). Pass server client for server components/actions.
  */
-export async function getClaims(): Promise<Claim[]> {
-    const { data: claims, error: claimsError } = await supabase
+export async function getClaims(authClient?: SupabaseClient): Promise<Claim[]> {
+    const client = authClient ?? supabase;
+    const { data: claims, error: claimsError } = await client
         .from('claims')
         .select('*')
         .order('created_at', { ascending: false });
@@ -70,14 +72,14 @@ export async function getClaims(): Promise<Claim[]> {
 
     // Fetch history and attachments for each claim
     const claimsWithDetails = await Promise.all(
-        claims.map(async (claim) => {
-            const { data: history } = await supabase
+        (claims ?? []).map(async (claim) => {
+            const { data: history } = await client
                 .from('claim_history')
                 .select('*')
                 .eq('claim_id', claim.id)
                 .order('created_at', { ascending: false });
 
-            const { data: attachments } = await supabase
+            const { data: attachments } = await client
                 .from('claim_attachments')
                 .select('*')
                 .eq('claim_id', claim.id);

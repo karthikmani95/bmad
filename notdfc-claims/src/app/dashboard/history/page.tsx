@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getClaims } from '@/lib/supabase/database';
+import { getClaimsAction } from '@/features/claims/actions';
 import { Claim } from '@/features/claims/types';
 import { StatusBadge } from '@/features/claims/components/details/StatusBadge';
 import { ClaimStatus } from '@/features/claims/types';
@@ -15,10 +15,10 @@ export default function ClaimHistoryPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<ClaimStatus | 'All'>('All');
 
-    // Fetch claims on mount
+    // Fetch claims on mount (server action for RLS auth)
     useEffect(() => {
         async function loadClaims() {
-            const data = await getClaims();
+            const data = await getClaimsAction();
             setClaims(data);
             setLoading(false);
         }

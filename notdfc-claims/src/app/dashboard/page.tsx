@@ -3,12 +3,14 @@ import { ClaimsSummaryTable } from '@/features/dashboard/components/ClaimsSummar
 import { PlusCircle, ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { getClaims } from '@/lib/supabase/database';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-    // Fetch claims from database
-    const claims = await getClaims();
+    // Fetch claims (use server client for RLS - auth.uid() must match)
+    const supabase = await createClient();
+    const claims = await getClaims(supabase);
 
     // Calculate dynamic metrics
     const activeDisputes = claims.filter(c => c.status === 'Open' || c.status === 'In Progress').length;

@@ -117,10 +117,13 @@ export async function getClaims(authClient?: SupabaseClient): Promise<Claim[]> {
 }
 
 /**
- * Get a single claim by ID
+ * Get a single claim by ID.
+ * @param claimId - Claim UUID
+ * @param authClient - Supabase client with user session (required for RLS)
  */
-export async function getClaimById(claimId: string): Promise<Claim | null> {
-    const { data: claim, error } = await supabase
+export async function getClaimById(claimId: string, authClient?: SupabaseClient): Promise<Claim | null> {
+    const client = authClient ?? supabase;
+    const { data: claim, error } = await client
         .from('claims')
         .select('*')
         .eq('id', claimId)
@@ -131,13 +134,13 @@ export async function getClaimById(claimId: string): Promise<Claim | null> {
         return null;
     }
 
-    const { data: history } = await supabase
+    const { data: history } = await client
         .from('claim_history')
         .select('*')
         .eq('claim_id', claim.id)
         .order('created_at', { ascending: false });
 
-    const { data: attachments } = await supabase
+    const { data: attachments } = await client
         .from('claim_attachments')
         .select('*')
         .eq('claim_id', claim.id);
@@ -241,28 +244,47 @@ export async function createClaim(
 }
 
 /**
- * Update a claim
+ * Update a claim.
+ * @param authClient - Supabase client with user session (required for RLS)
+ * @param opts - Optional: currentStatus for history entries when not in updates
  */
 export async function updateClaim(
     claimId: string,
-    updates: Partial<Pick<Claim, 'reason' | 'status'>>
+    updates: Partial<Pick<Claim, 'reason' | 'status'>>,
+    authClient: SupabaseClient,
+    opts?: { currentStatus?: string }
 ): Promise<{ success: boolean; error?: string }> {
-    const updateData: any = {};
-
+    const updateData: Record<string, unknown> = {};
     if (updates.reason !== undefined) updateData.reason = updates.reason;
     if (updates.status !== undefined) updateData.status = updates.status;
 
-    const { error } = await supabase
+    const { error } = await authClient
         .from('claims')
         .update(updateData)
         .eq('id', claimId);
 
     if (error) {
         console.error('Error updating claim:', error);
-        return {
-            success: false,
-            error: 'Failed to update claim.'
-        };
+        return { success: false, error: 'Failed to update claim.' };
+    }
+
+    const statusForHistory = updates.status ?? opts?.currentStatus ?? 'Open';
+
+    // Add audit history for reason or status updates
+    if (updates.reason !== undefined) {
+        await authClient.from('claim_history').insert({
+            claim_id: claimId,
+            status: statusForHistory,
+            description: 'Reason updated by customer',
+            actor: 'Customer'
+        });
+    } else if (updates.status === 'Cancelled') {
+        await authClient.from('claim_history').insert({
+            claim_id: claimId,
+            status: 'Cancelled',
+            description: 'Claim cancelled by customer',
+            actor: 'Customer'
+        });
     }
 
     return { success: true };
@@ -308,10 +330,12 @@ export async function getTransactions(filters?: {
 }
 
 /**
- * Get a transaction by ID
+ * Get a transaction by ID.
+ * @param authClient - Supabase client with user session (required for RLS)
  */
-export async function getTransactionById(transactionId: string): Promise<Transaction | null> {
-    const { data, error } = await supabase
+export async function getTransactionById(transactionId: string, authClient?: SupabaseClient): Promise<Transaction | null> {
+    const client = authClient ?? supabase;
+    const { data, error } = await client
         .from('transactions')
         .select('*')
         .eq('id', transactionId)
@@ -334,21 +358,22 @@ export async function getTransactionById(transactionId: string): Promise<Transac
 }
 
 /**
- * Upload file attachment for a claim
+ * Upload file attachment for a claim.
+ * @param authClient - Supabase client with user session (required for RLS)
  */
 export async function uploadClaimAttachment(
     claimId: string,
-    file: File
-): Promise<{ success: boolean; attachmentId?: string; error?: string }> {
-    const { data: { user } } = await supabase.auth.getUser();
+    file: File,
+    authClient: SupabaseClient
+): Promise<{ success: boolean; attachmentId?: string; attachment?: DbClaimAttachment; error?: string }> {
+    const { data: { user } } = await authClient.auth.getUser();
 
     if (!user) {
         return { success: false, error: 'User not authenticated' };
     }
 
-    // Upload file to storage
     const filePath = `${user.id}/${claimId}/${file.name}`;
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await authClient.storage
         .from('claim-attachments')
         .upload(filePath, file);
 
@@ -357,8 +382,7 @@ export async function uploadClaimAttachment(
         return { success: false, error: 'Failed to upload file' };
     }
 
-    // Create attachment record
-    const { data: attachment, error: dbError } = await supabase
+    const { data: attachment, error: dbError } = await authClient
         .from('claim_attachments')
         .insert({
             claim_id: claimId,
@@ -375,5 +399,17 @@ export async function uploadClaimAttachment(
         return { success: false, error: 'Failed to save attachment' };
     }
 
-    return { success: true, attachmentId: attachment.id };
+    return {
+        success: true,
+        attachmentId: attachment.id,
+        attachment: {
+            id: attachment.id,
+            claim_id: attachment.claim_id,
+            file_name: attachment.file_name,
+            file_size: attachment.file_size,
+            file_type: attachment.file_type,
+            storage_path: attachment.storage_path,
+            uploaded_at: attachment.uploaded_at
+        }
+    };
 }

@@ -1,12 +1,31 @@
 "use server";
 
-import { createClaim, getClaims } from '@/lib/supabase/database';
+import { createClaim, getClaims, updateClaim, uploadClaimAttachment } from '@/lib/supabase/database';
 import { supabase } from '@/lib/supabase/database';
 import { createClient } from '@/lib/supabase/server';
 
 export async function getClaimsAction() {
     const supabaseServer = await createClient();
     return getClaims(supabaseServer);
+}
+
+export async function updateClaimAction(
+    claimId: string,
+    updates: { reason?: string; status?: 'Open' | 'In Progress' | 'Approved' | 'Rejected' | 'Cancelled' | 'Closed' },
+    opts?: { currentStatus?: string }
+) {
+    const supabaseServer = await createClient();
+    return updateClaim(claimId, updates, supabaseServer, opts);
+}
+
+export async function uploadClaimAttachmentAction(formData: FormData) {
+    const claimId = formData.get('claimId') as string;
+    const file = formData.get('file') as File;
+    if (!claimId || !file) {
+        return { success: false, error: 'Missing claimId or file' };
+    }
+    const supabaseServer = await createClient();
+    return uploadClaimAttachment(claimId, file, supabaseServer);
 }
 
 export interface DisputeSubmission {

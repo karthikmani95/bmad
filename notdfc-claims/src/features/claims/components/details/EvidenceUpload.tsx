@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, FileText, CheckCircle, Loader2 } from 'lucide-react';
+import { uploadClaimAttachmentAction } from '@/features/claims/actions';
 
 export interface UploadedFile {
     id: string;
@@ -12,38 +13,71 @@ export interface UploadedFile {
 }
 
 interface EvidenceUploadProps {
+    claimId?: string;
     files: UploadedFile[];
     onFilesChange: (files: UploadedFile[]) => void;
 }
 
-export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ files, onFilesChange }) => {
+const ACCEPTED_TYPES = '.pdf,.png,.jpg,.jpeg';
+const MAX_SIZE_MB = 5;
+
+export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ claimId, files, onFilesChange }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            simulateUpload(Array.from(e.target.files));
+            doUpload(Array.from(e.target.files));
         }
     };
 
-    const simulateUpload = async (newFiles: File[]) => {
+    const doUpload = async (newFiles: File[]) => {
+        setUploadError(null);
         setIsUploading(true);
+        const uploaded: UploadedFile[] = [];
 
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        if (claimId) {
+            for (const file of newFiles) {
+                if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                    setUploadError(`File ${file.name} exceeds ${MAX_SIZE_MB}MB limit`);
+                    continue;
+                }
+                const formData = new FormData();
+                formData.append('claimId', claimId);
+                formData.append('file', file);
+                const result = await uploadClaimAttachmentAction(formData);
+                if (result.success && result.attachment) {
+                    uploaded.push({
+                        id: result.attachment.id,
+                        name: result.attachment.file_name,
+                        size: result.attachment.file_size,
+                        type: result.attachment.file_type,
+                        uploadedAt: new Date(result.attachment.uploaded_at)
+                    });
+                } else {
+                    setUploadError(result.error ?? 'Upload failed');
+                }
+            }
+        } else {
+            // Creation wizard: no claimId yet, simulate local upload
+            await new Promise(resolve => setTimeout(resolve, 800));
+            newFiles.forEach(f => {
+                uploaded.push({
+                    id: Math.random().toString(36).substring(7),
+                    name: f.name,
+                    size: f.size,
+                    type: f.type,
+                    uploadedAt: new Date()
+                });
+            });
+        }
 
-        const uploaded: UploadedFile[] = newFiles.map(f => ({
-            id: Math.random().toString(36).substring(7),
-            name: f.name,
-            size: f.size,
-            type: f.type,
-            uploadedAt: new Date()
-        }));
-
-        onFilesChange([...files, ...uploaded]);
+        if (uploaded.length > 0) {
+            onFilesChange([...files, ...uploaded]);
+        }
         setIsUploading(false);
-
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -78,7 +112,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ files, onFilesCh
                     e.preventDefault();
                     setIsDragging(false);
                     if (e.dataTransfer.files.length > 0) {
-                        simulateUpload(Array.from(e.dataTransfer.files));
+                        doUpload(Array.from(e.dataTransfer.files));
                     }
                 }}
             >
@@ -88,7 +122,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ files, onFilesCh
                     onChange={handleFileSelect}
                     className="hidden"
                     multiple
-                    accept=".pdf,.png,.jpg,.jpeg"
+                    accept={ACCEPTED_TYPES}
                 />
 
                 {isUploading ? (
@@ -110,7 +144,8 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ files, onFilesCh
                             </button>
                             <span className="text-sm text-gray-500"> or drag and drop</span>
                         </div>
-                        <p className="text-[10px] text-gray-400 font-medium">PD, PNG, JPG (Max 5MB)</p>
+                        <p className="text-[10px] text-gray-400 font-medium">PDF, PNG, JPG (Max {MAX_SIZE_MB}MB)</p>
+                        {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
                     </div>
                 )}
             </div>

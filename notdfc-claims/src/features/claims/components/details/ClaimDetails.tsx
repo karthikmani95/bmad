@@ -8,6 +8,7 @@ import { EvidenceUpload, UploadedFile } from './EvidenceUpload';
 import { ReasonEditor } from './ReasonEditor';
 import { emailService } from '@/lib/mock-email-service';
 import { CancellationModal } from './CancellationModal';
+import { updateClaimAction } from '@/features/claims/actions';
 import { ChevronLeft, CreditCard, Receipt, FileText, BarChart3, AlertCircle, Ban } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,36 +30,40 @@ export const ClaimDetails: React.FC<ClaimDetailsProps> = ({ claim, merchantName 
     );
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
-    const handleReasonUpdate = (newReason: string) => {
-        setReason(newReason);
-        // Add optimistic history event
-        const newEvent: ClaimHistoryEvent = {
-            id: Math.random().toString(36).substring(7),
-            date: new Date().toISOString(),
-            status: status,
-            description: 'Reason updated by customer',
-            actor: 'Customer'
-        };
-        setHistory(prev => [newEvent, ...prev]);
+    const handleReasonUpdate = async (newReason: string) => {
+        const result = await updateClaimAction(claim.id, { reason: newReason }, { currentStatus: status });
+        if (result.success) {
+            setReason(newReason);
+            const newEvent: ClaimHistoryEvent = {
+                id: 'reason-update',
+                date: new Date().toISOString(),
+                status: status,
+                description: 'Reason updated by customer',
+                actor: 'Customer'
+            };
+            setHistory(prev => [newEvent, ...prev]);
+        }
     };
 
-    const handleCancelClaim = () => {
-        emailService.sendEmail(
-            'customer@example.com',
-            `Dispute #${claim.id} Cancelled`,
-            'You have successfully withdrawn your claim. No further action is required.'
-        );
-
-        setStatus('Cancelled');
-        setIsCancelModalOpen(false);
-        const newEvent: ClaimHistoryEvent = {
-            id: Math.random().toString(36).substring(7),
-            date: new Date().toISOString(),
-            status: 'Cancelled',
-            description: 'Claim cancelled by customer',
-            actor: 'Customer'
-        };
-        setHistory(prev => [newEvent, ...prev]);
+    const handleCancelClaim = async () => {
+        const result = await updateClaimAction(claim.id, { status: 'Cancelled' });
+        if (result.success) {
+            emailService.sendEmail(
+                'customer@example.com',
+                `Dispute #${claim.id} Cancelled`,
+                'You have successfully withdrawn your claim. No further action is required.'
+            );
+            setStatus('Cancelled');
+            setIsCancelModalOpen(false);
+            const newEvent: ClaimHistoryEvent = {
+                id: 'cancelled',
+                date: new Date().toISOString(),
+                status: 'Cancelled',
+                description: 'Claim cancelled by customer',
+                actor: 'Customer'
+            };
+            setHistory(prev => [newEvent, ...prev]);
+        }
     };
 
     return (
@@ -180,7 +185,11 @@ export const ClaimDetails: React.FC<ClaimDetailsProps> = ({ claim, merchantName 
                             {/* Evidence Upload - Inline with Reason */}
                             {status !== 'Cancelled' && status !== 'Closed' && (
                                 <div className="pt-4 border-t border-gray-100">
-                                    <EvidenceUpload files={evidenceFiles} onFilesChange={setEvidenceFiles} />
+                                    <EvidenceUpload
+                                        claimId={claim.id}
+                                        files={evidenceFiles}
+                                        onFilesChange={setEvidenceFiles}
+                                    />
                                 </div>
                             )}
                         </div>

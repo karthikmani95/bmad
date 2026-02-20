@@ -5,20 +5,28 @@ import { Pencil, Save, X } from 'lucide-react';
 
 interface ReasonEditorProps {
     initialReason: string;
-    onSave: (newReason: string) => void;
+    onSave: (newReason: string) => void | Promise<void>;
 }
 
 export const ReasonEditor: React.FC<ReasonEditorProps> = ({ initialReason, onSave }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [reason, setReason] = useState(initialReason);
     const [tempReason, setTempReason] = useState(initialReason);
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSave = () => {
-        if (tempReason.trim() !== reason) {
-            setReason(tempReason);
-            onSave(tempReason);
+    const handleSave = async () => {
+        if (tempReason.trim() === reason) {
+            setIsEditing(false);
+            return;
         }
-        setIsEditing(false);
+        setIsSaving(true);
+        try {
+            await onSave(tempReason);
+            setReason(tempReason);
+            setIsEditing(false);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = () => {
@@ -45,9 +53,10 @@ export const ReasonEditor: React.FC<ReasonEditorProps> = ({ initialReason, onSav
                     </button>
                     <button
                         onClick={handleSave}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-notdfc-navy-light hover:bg-notdfc-navy-deep rounded-lg transition-colors shadow-sm"
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-notdfc-navy-light hover:bg-notdfc-navy-deep rounded-lg transition-colors shadow-sm disabled:opacity-60"
                     >
-                        <Save className="w-3.5 h-3.5" /> Save Changes
+                        <Save className="w-3.5 h-3.5" /> {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
             </div>

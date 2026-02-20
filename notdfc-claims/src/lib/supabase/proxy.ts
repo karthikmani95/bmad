@@ -64,8 +64,8 @@ export async function updateSession(request: NextRequest) {
         console.error("Proxy: Invalid SSO Token. Clearing cookie.");
         const response = NextResponse.redirect(new URL("/auth/login", request.url));
         response.cookies.delete("notdfc_sso_token");
-        supabaseResponse.cookies.getAll().forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
+        supabaseResponse.cookies.getAll().forEach((cookie) =>
+          response.cookies.set(cookie.name, cookie.value, { path: "/" })
         );
         return response;
       }
@@ -74,8 +74,8 @@ export async function updateSession(request: NextRequest) {
     if (!isAuthenticated) {
       console.warn(`Proxy: Unauthenticated access to ${pathname}. Redirecting to /auth/login.`);
       const response = NextResponse.redirect(new URL("/auth/login", request.url));
-      supabaseResponse.cookies.getAll().forEach(({ name, value, options }) =>
-        response.cookies.set(name, value, options)
+      supabaseResponse.cookies.getAll().forEach((cookie) =>
+        response.cookies.set(cookie.name, cookie.value, { path: "/" })
       );
       return response;
     }
